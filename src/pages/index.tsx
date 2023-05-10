@@ -1,5 +1,11 @@
 import { useState } from 'react';
 
+type ClickInfo = {
+  squares: Array<string>,
+  clickedRow: number,
+  clickedCol: number,
+}
+
 function Square({ value, onSquareClick }:{value: string, onSquareClick: () => void}) {
   return (
     <button className="square" onClick={onSquareClick}>
@@ -8,7 +14,7 @@ function Square({ value, onSquareClick }:{value: string, onSquareClick: () => vo
   );
 }
 
-function Board({ xIsNext, squares, onPlay }: {xIsNext: boolean, squares: Array<string>, onPlay: (nextSquares: Array<string>) => void}) {
+function Board({ xIsNext, squares, onPlay }: {xIsNext: boolean, squares: Array<string>, onPlay: (clickInfo: ClickInfo) => void}) {
   function handleClick(i: number): void {
     if (calculateWinner(squares) || squares[i]) {
       return;
@@ -19,7 +25,11 @@ function Board({ xIsNext, squares, onPlay }: {xIsNext: boolean, squares: Array<s
     } else {
       nextSquares[i] = 'O';
     }
-    onPlay(nextSquares);
+    // 3x3のマスに左上から番号をつけているので、３で割ったり色々すれば行と列が分かる
+    const row = Math.floor(i / 3) + 1;
+    const col = i % 3 + 1;
+
+    onPlay({squares: nextSquares, clickedRow: row, clickedCol: col});
   }
 
   const winner = calculateWinner(squares);
@@ -53,13 +63,13 @@ function Board({ xIsNext, squares, onPlay }: {xIsNext: boolean, squares: Array<s
 }
 
 export default function Game() {
-  const [history, setHistory] = useState([Array(9).fill(null)]);
-  const [currentMove, setCurrentMove] = useState(0);
+  const [history, setHistory] = useState<ClickInfo[]>([{squares: Array(9).fill(null), clickedRow: 0, clickedCol: 0}]);
+  const [currentMove, setCurrentMove] = useState<number>(0);
   const xIsNext = currentMove % 2 === 0;
-  const currentSquares = history[currentMove];
+  const currentSquares = history[currentMove].squares;
 
-  function handlePlay(nextSquares: Array<string>): void {
-    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+  function handlePlay(clickInfo: ClickInfo): void {
+    const nextHistory = [...history.slice(0, currentMove + 1), clickInfo];
     setHistory(nextHistory);
     setCurrentMove(nextHistory.length - 1);
   }
@@ -68,10 +78,10 @@ export default function Game() {
     setCurrentMove(nextMove);
   }
 
-  const moves = history.map((squares, move) => {
+  const moves = history.map((clickInfo, move) => {
     let description;
     if (move > 0) {
-      description = 'Go to move #' + move;
+      description = `Go to move #${move} （${clickInfo.clickedRow}行目の${clickInfo.clickedCol}列目に${move % 2 ===0? 'O':'X'}を置いた）`;
     } else {
       description = 'Go to game start';
     }
